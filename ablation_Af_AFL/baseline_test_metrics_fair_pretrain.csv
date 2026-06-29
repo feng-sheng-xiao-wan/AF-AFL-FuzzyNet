@@ -1,0 +1,6 @@
+﻿baseline,error,protocol,threshold,threshold_source,test_n,test_n_af,test_n_afl,test_acc,test_afl_precision,test_afl_recall,test_afl_f1,test_macro_f1,test_argmax_afl_f1,test_argmax_macro_f1,cm
+arnet2,,"AFL-threshold (val-tuned, min_afl_recall=0.2)",0.009999999776482582,val_search,6734,5216,1518,0.225423,0.225423,1.000000,0.367911,0.183955,0.000000,0.436485,"[[0, 5216], [0, 1518]]"
+rawecgnet,,"AFL-threshold (val-tuned, min_afl_recall=0.2)",0.8723999857902527,val_search,6734,5216,1518,0.548411,0.330815,0.980896,0.494767,0.543262,0.476341,0.506740,"[[2204, 3012], [29, 1489]]"
+wang2021,,"AFL-threshold (val-tuned, min_afl_recall=0.2)",0.9214000105857849,val_search,6734,5216,1518,0.566974,0.341136,0.988801,0.507266,0.560520,0.490720,0.531874,"[[2317, 2899], [17, 1501]]"
+kraft2025,,"AFL-threshold (val-tuned, min_afl_recall=0.2)",0.9900000095367432,val_search,6734,5216,1518,0.511286,0.313093,0.978261,0.474365,0.508863,0.467665,0.487087,"[[1958, 3258], [33, 1485]]"
+fleury2024,,"AFL-threshold (val-tuned, min_afl_recall=0.2)",0.29420000314712524,val_search,6734,5216,1518,0.552866,0.334074,0.990119,0.499585,0.547739,0.503022,0.554493,"[[2220, 2996], [15, 1503]]"

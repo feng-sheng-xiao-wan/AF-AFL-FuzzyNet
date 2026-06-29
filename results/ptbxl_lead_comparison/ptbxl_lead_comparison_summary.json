@@ -1,0 +1,383 @@
+{
+  "config": {
+    "ptbxl_root": "E:\\Study\\FK-ECG_fuzzy_v1\\aflike_v1_starter\\data\\ptb-xl",
+    "output_dir": "E:\\Study\\FK-ECG_fuzzy_v1\\aflike_v1_starter\\results\\ptbxl_lead_comparison",
+    "subset_csv": null,
+    "preferred_resolution": "lr",
+    "fs_target": 250,
+    "max_len": 2500,
+    "rr_len": 32,
+    "epochs": 20,
+    "batch_size": 16,
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "seeds": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "n_splits": 5,
+    "val_size": 0.2,
+    "threshold_steps": 101,
+    "bootstrap_B": 1000,
+    "bootstrap_seed": 2026,
+    "device": "auto",
+    "num_workers": 0,
+    "fuzzy_weight_init": 0.3,
+    "use_stft_dbscan": false,
+    "cache_features": true
+  },
+  "sample_counts": {
+    "total": 104,
+    "AF": 48,
+    "AFL": 56
+  },
+  "prediction_rows": 520,
+  "unique_samples_per_seed": {
+    "42": 104,
+    "43": 104,
+    "44": 104,
+    "45": 104,
+    "46": 104
+  },
+  "lead_settings": {
+    "12lead": [
+      "I",
+      "II",
+      "III",
+      "aVR",
+      "aVL",
+      "aVF",
+      "V1",
+      "V2",
+      "V3",
+      "V4",
+      "V5",
+      "V6"
+    ],
+    "II_V1": [
+      "II",
+      "V1"
+    ]
+  },
+  "feature_strategy": {
+    "II_V1": "R-peak/RR from Lead II; flutter and quality features from available II and V1 leads.",
+    "12lead": "R-peak/RR from Lead II; flutter uses fixed Lead II/V1 preference; quality features use all 12 leads."
+  },
+  "split_methods": [
+    "StratifiedGroupKFold"
+  ],
+  "thresholding": "AFL threshold tuned on validation split inside each fold; test fold is never used for threshold tuning.",
+  "wording_constraint": "Preliminary evidence only; not definitive equivalence and not a replacement claim.",
+  "bootstrap": {
+    "delta_mean": 0.009791812012013852,
+    "delta_median": 0.010235151909961493,
+    "ci_lower_2.5": -0.017283444733384196,
+    "ci_upper_97.5": 0.035237702347225765,
+    "interpretation": "Preliminary comparable"
+  },
+  "thresholds": [
+    {
+      "seed": 42,
+      "fold": 0,
+      "setting": "12lead",
+      "threshold": 0.1276
+    },
+    {
+      "seed": 42,
+      "fold": 0,
+      "setting": "II_V1",
+      "threshold": 0.255
+    },
+    {
+      "seed": 42,
+      "fold": 1,
+      "setting": "12lead",
+      "threshold": 0.0688
+    },
+    {
+      "seed": 42,
+      "fold": 1,
+      "setting": "II_V1",
+      "threshold": 0.2158
+    },
+    {
+      "seed": 42,
+      "fold": 2,
+      "setting": "12lead",
+      "threshold": 0.5196
+    },
+    {
+      "seed": 42,
+      "fold": 2,
+      "setting": "II_V1",
+      "threshold": 0.9703999999999999
+    },
+    {
+      "seed": 42,
+      "fold": 3,
+      "setting": "12lead",
+      "threshold": 0.01
+    },
+    {
+      "seed": 42,
+      "fold": 3,
+      "setting": "II_V1",
+      "threshold": 0.402
+    },
+    {
+      "seed": 42,
+      "fold": 4,
+      "setting": "12lead",
+      "threshold": 0.5097999999999999
+    },
+    {
+      "seed": 42,
+      "fold": 4,
+      "setting": "II_V1",
+      "threshold": 0.255
+    },
+    {
+      "seed": 43,
+      "fold": 0,
+      "setting": "12lead",
+      "threshold": 0.0492
+    },
+    {
+      "seed": 43,
+      "fold": 0,
+      "setting": "II_V1",
+      "threshold": 0.3726
+    },
+    {
+      "seed": 43,
+      "fold": 1,
+      "setting": "12lead",
+      "threshold": 0.4412
+    },
+    {
+      "seed": 43,
+      "fold": 1,
+      "setting": "II_V1",
+      "threshold": 0.9116
+    },
+    {
+      "seed": 43,
+      "fold": 2,
+      "setting": "12lead",
+      "threshold": 0.07859999999999999
+    },
+    {
+      "seed": 43,
+      "fold": 2,
+      "setting": "II_V1",
+      "threshold": 0.019799999999999998
+    },
+    {
+      "seed": 43,
+      "fold": 3,
+      "setting": "12lead",
+      "threshold": 0.0394
+    },
+    {
+      "seed": 43,
+      "fold": 3,
+      "setting": "II_V1",
+      "threshold": 0.3236
+    },
+    {
+      "seed": 43,
+      "fold": 4,
+      "setting": "12lead",
+      "threshold": 0.11779999999999999
+    },
+    {
+      "seed": 43,
+      "fold": 4,
+      "setting": "II_V1",
+      "threshold": 0.647
+    },
+    {
+      "seed": 44,
+      "fold": 0,
+      "setting": "12lead",
+      "threshold": 0.6176
+    },
+    {
+      "seed": 44,
+      "fold": 0,
+      "setting": "II_V1",
+      "threshold": 0.157
+    },
+    {
+      "seed": 44,
+      "fold": 1,
+      "setting": "12lead",
+      "threshold": 0.1864
+    },
+    {
+      "seed": 44,
+      "fold": 1,
+      "setting": "II_V1",
+      "threshold": 0.0296
+    },
+    {
+      "seed": 44,
+      "fold": 2,
+      "setting": "12lead",
+      "threshold": 0.9312
+    },
+    {
+      "seed": 44,
+      "fold": 2,
+      "setting": "II_V1",
+      "threshold": 0.1668
+    },
+    {
+      "seed": 44,
+      "fold": 3,
+      "setting": "12lead",
+      "threshold": 0.6862
+    },
+    {
+      "seed": 44,
+      "fold": 3,
+      "setting": "II_V1",
+      "threshold": 0.059000000000000004
+    },
+    {
+      "seed": 44,
+      "fold": 4,
+      "setting": "12lead",
+      "threshold": 0.3824
+    },
+    {
+      "seed": 44,
+      "fold": 4,
+      "setting": "II_V1",
+      "threshold": 0.3138
+    },
+    {
+      "seed": 45,
+      "fold": 0,
+      "setting": "12lead",
+      "threshold": 0.019799999999999998
+    },
+    {
+      "seed": 45,
+      "fold": 0,
+      "setting": "II_V1",
+      "threshold": 0.0394
+    },
+    {
+      "seed": 45,
+      "fold": 1,
+      "setting": "12lead",
+      "threshold": 0.9017999999999999
+    },
+    {
+      "seed": 45,
+      "fold": 1,
+      "setting": "II_V1",
+      "threshold": 0.6078
+    },
+    {
+      "seed": 45,
+      "fold": 2,
+      "setting": "12lead",
+      "threshold": 0.7253999999999999
+    },
+    {
+      "seed": 45,
+      "fold": 2,
+      "setting": "II_V1",
+      "threshold": 0.0296
+    },
+    {
+      "seed": 45,
+      "fold": 3,
+      "setting": "12lead",
+      "threshold": 0.696
+    },
+    {
+      "seed": 45,
+      "fold": 3,
+      "setting": "II_V1",
+      "threshold": 0.8136
+    },
+    {
+      "seed": 45,
+      "fold": 4,
+      "setting": "12lead",
+      "threshold": 0.9508
+    },
+    {
+      "seed": 45,
+      "fold": 4,
+      "setting": "II_V1",
+      "threshold": 0.6372
+    },
+    {
+      "seed": 46,
+      "fold": 0,
+      "setting": "12lead",
+      "threshold": 0.3628
+    },
+    {
+      "seed": 46,
+      "fold": 0,
+      "setting": "II_V1",
+      "threshold": 0.6764
+    },
+    {
+      "seed": 46,
+      "fold": 1,
+      "setting": "12lead",
+      "threshold": 0.7253999999999999
+    },
+    {
+      "seed": 46,
+      "fold": 1,
+      "setting": "II_V1",
+      "threshold": 0.059000000000000004
+    },
+    {
+      "seed": 46,
+      "fold": 2,
+      "setting": "12lead",
+      "threshold": 0.157
+    },
+    {
+      "seed": 46,
+      "fold": 2,
+      "setting": "II_V1",
+      "threshold": 0.7253999999999999
+    },
+    {
+      "seed": 46,
+      "fold": 3,
+      "setting": "12lead",
+      "threshold": 0.3922
+    },
+    {
+      "seed": 46,
+      "fold": 3,
+      "setting": "II_V1",
+      "threshold": 0.01
+    },
+    {
+      "seed": 46,
+      "fold": 4,
+      "setting": "12lead",
+      "threshold": 0.6176
+    },
+    {
+      "seed": 46,
+      "fold": 4,
+      "setting": "II_V1",
+      "threshold": 0.3726
+    }
+  ]
+}
