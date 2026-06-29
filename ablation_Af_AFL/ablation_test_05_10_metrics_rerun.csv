@@ -1,7 +1,0 @@
-exp,error,test_acc,test_precision,test_recall,test_f1,AF_precision,AF_recall,AF_f1,AFL_precision,AFL_recall,AFL_f1,ckpt
-05_no_fuzzy,,0.517595,0.652625,0.683243,0.514964,0.988580,0.381637,0.550685,0.316670,0.984848,0.479243,outputs/ablation/05_full_no_fuzzy/af_vs_afl_afdb_ltafdb.pt
-06_fuzzy_only,,0.842910,0.838668,0.678372,0.713445,0.844003,0.977957,0.906056,0.833333,0.378788,0.520833,
-07_no_rr,,0.511210,0.647101,0.675852,0.508704,0.981491,0.376078,0.543792,0.312711,0.975626,0.473617,outputs/ablation/07_full_no_rr/af_vs_afl_afdb_ltafdb.pt
-08_no_morph,,0.877506,0.867136,0.762124,0.797460,0.881780,0.972206,0.924788,0.852492,0.552042,0.670132,outputs/ablation/08_full_no_morph/af_vs_afl_afdb_ltafdb.pt
-09_no_oversampling,,0.797773,0.731656,0.794265,0.748503,0.928429,0.800652,0.859819,0.534884,0.787879,0.637187,outputs/ablation/09_full_no_oversampling/af_vs_afl_afdb_ltafdb.pt
-10_no_data_aug,,0.785080,0.481036,0.408931,0.440817,0.960859,0.810966,0.879572,0.001212,0.006897,0.002062,outputs/ablation/10_full_no_data_aug/af_vs_afl_afdb_ltafdb.pt

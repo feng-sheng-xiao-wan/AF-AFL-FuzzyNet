@@ -1,6 +1,0 @@
-baseline,error,val_loss,val_acc,val_macro_f1,val_afl_f1,test_loss,test_acc,test_macro_f1,test_afl_f1,test_afl_precision,test_afl_recall,test_threshold,test_argmax_afl_f1,test_AF_precision,test_AF_recall,test_AF_f1,test_AFL_precision,test_AFL_recall,test_AFL_f1
-ArNet2,train_exit_1,,,,,,,,,,,,,,,,,,
-RawECGNet,train_exit_1,,,,,,,,,,,,,,,,,,
-Wang2021_BiLSTM,train_exit_1,,,,,,,,,,,,,,,,,,
-Kraft2025_ConvNeXt1D,train_exit_1,,,,,,,,,,,,,,,,,,
-Fleury2024_Modular,train_exit_1,,,,,,,,,,,,,,,,,,

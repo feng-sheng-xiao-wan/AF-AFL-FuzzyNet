@@ -1,6 +1,6 @@
 # Fuzzy-Rule-Guided AF/AFL Recognition from Short ECG Windows
 
-This repository contains the code and small derived result tables needed to reproduce the AF/AFL experiments, reviewer-requested post-processing analyses, and publication figures.
+This repository contains the code needed to reproduce the AF/AFL experiments, reviewer-requested post-processing analyses, and publication figures.
 
 Raw ECG databases, precomputed feature files, and trained checkpoints are not included. Please download the source ECG datasets from their official providers and regenerate features/checkpoints with the scripts in this repository.
 
@@ -14,13 +14,7 @@ ablation_Af_AFL/
   Ablation and baseline-comparison code.
 
 scripts/
-  Reviewer-stage post-processing, PR/ROC/probability plots, and calibration-style diagnostics.
-
-results/
-  Small derived CSV/JSON/TEX/PNG/PDF files used for manuscript tables and figures.
-
-review_audit_optional/
-  Optional metadata audit file for reviewer response. It contains no ECG waveforms.
+  Reviewer-stage post-processing, PR/ROC/probability plots, and diagnostic-table generation.
 
 docs/
   Original project notes and experiment instructions.
@@ -71,12 +65,7 @@ python scripts/run_stage2_revision_experiments.py --out_dir outputs/stage2_revis
 python scripts/plot_stage2_revision_figures.py
 ```
 
-The included `results/` folder contains the small derived outputs already used for manuscript revision, including:
-
-- threshold-harmonized metric table with bootstrap CI
-- clean vs noisy AFL subgroup table
-- PTB-XL external-validation CI summary
-- PR/ROC and probability-threshold diagnostic figures
+Generated result tables and figures are intentionally not tracked in this GitHub repository. They will be written to local output folders when the scripts are rerun.
 
 ## What Is Not Included
 
@@ -85,6 +74,6 @@ The following files are intentionally excluded:
 - raw ECG waveforms
 - `.npz` precomputed features
 - `.pt`, `.pth`, `.pkl` checkpoints
+- generated result tables and figures
 - local virtual environments
 - local paper drafts and private reviewer files
-

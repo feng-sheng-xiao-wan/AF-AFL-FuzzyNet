@@ -6,7 +6,14 @@ venv/
 data/
 outputs/
 outputs_main_af_vs_afl/
+results/
+review_audit_optional/
 
+*.csv
+*.json
+*.tex
+*.png
+*.pdf
 *.npz
 *.dat
 *.hea
@@ -19,4 +26,3 @@ outputs_main_af_vs_afl/
 .ipynb_checkpoints/
 .DS_Store
 Thumbs.db
-

@@ -1,8 +1,0 @@
-exp,error,test_acc,test_precision,test_recall,test_f1,AF_precision,AF_recall,AF_f1,AFL_precision,AFL_recall,AFL_f1,ckpt
-main_experiment,,0.620045,0.652934,0.716210,0.601039,0.944779,0.541116,0.688117,0.361089,0.891304,0.513960,E:\Study\FK-ECG_fuzzy_v1\aflike_v1_starter\outputs\strict_fuzzy_v4\af_vs_afl_afdb_ltafdb.pt
-05_no_fuzzy,,0.517595,0.652625,0.683243,0.514964,0.988580,0.381637,0.550685,0.316670,0.984848,0.479243,outputs/ablation/05_full_no_fuzzy/af_vs_afl_afdb_ltafdb.pt
-06_fuzzy_only,,0.777728,0.661676,0.586788,0.596742,0.808458,0.934445,0.866898,0.514894,0.239130,0.326586,
-07_no_rr,,0.501559,0.642096,0.667521,0.499481,0.976434,0.365344,0.531734,0.307757,0.969697,0.467227,outputs/ablation/07_full_no_rr/af_vs_afl_afdb_ltafdb.pt
-08_no_morph,,0.828953,0.773301,0.686645,0.712629,0.850250,0.945754,0.895463,0.696352,0.427536,0.529796,outputs/ablation/08_full_no_morph/af_vs_afl_afdb_ltafdb.pt
-09_no_oversampling,,0.755308,0.686334,0.739297,0.698139,0.901101,0.768449,0.829505,0.471566,0.710145,0.566772,outputs/ablation/09_full_no_oversampling/af_vs_afl_afdb_ltafdb.pt
-10_no_data_aug,,0.785080,0.481036,0.408931,0.440817,0.960859,0.810966,0.879572,0.001212,0.006897,0.002062,outputs/ablation/10_full_no_data_aug/af_vs_afl_afdb_ltafdb.pt
