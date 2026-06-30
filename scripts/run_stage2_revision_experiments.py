@@ -669,7 +669,7 @@ All outputs were generated under `outputs/stage2_revision_experiments` using exi
 - Flutter descriptor: flutter evidence is the 3-8 Hz bandpower ratio. With `flutter_method={cfg_dict.get("flutter_method")}`, multilead flutter evidence is energy-weighted across leads.
 - Atrial-rate surrogate: `atrial_rate = 330 * flutter_ratio` when `flutter_ratio > 0.05`, otherwise 0. This is a heuristic surrogate rather than a direct atrial-cycle detector.
 - P-wave descriptor: `P_pres` is a P-wave-related heuristic score computed from 0.5-5 Hz energy in the 200-400 ms pre-R-window, not expert-validated P-wave detection.
-- Fuzzy logits: rule scores are normalized and converted to logits by `log(score + 1e-8) * 2.0`; binary AF/AFL evaluation uses the AF and AFL fuzzy-logit entries.
+- Fuzzy logits: binary AF/AFL rule scores are normalized and converted to logits by `log(score + 1e-8) * 2.0`.
 
 ## Text Caveats
 
@@ -701,7 +701,7 @@ The No Gate, No Quality, and Fixed Fusion analyses are post-hoc inference-time i
 
 5. Add the fuzzy-logit reproducibility sentence:
 
-Fuzzy rule scores were normalized across rhythm classes and converted to logits as log(score + 1e-8) * 2.0. For binary AF/AFL experiments, only the AF and AFL fuzzy-logit entries were used.
+Binary AF/AFL fuzzy rule scores were normalized and converted to logits as log(score + 1e-8) * 2.0.
 
 6. Add the data-processing reproducibility sentence:
 

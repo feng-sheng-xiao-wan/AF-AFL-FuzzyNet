@@ -181,16 +181,10 @@ def print_detailed_metrics(metrics: dict, num_classes: int):
             print(f"  - AF误分为AFL: {af_fn} ({af_fn/(af_tp+af_fn)*100:.1f}%)")
             print(f"  - AFL误分为AF: {afl_fp} ({afl_fp/(afl_tp+afl_fp)*100:.1f}%)")
     
-    elif num_classes == 4:
-        # 四分类：AF/AFL/PSVT/Normal
+    else:
         cm = metrics.get('confusion_matrix')
         if cm is not None:
-            print(f"\nConfusion Matrix:")
-            print(f"            Pred:   AF  AFL PSVT  NOR")
-            print(f"  True: AF   [{cm[0,0]:4d} {cm[0,1]:4d} {cm[0,2]:4d} {cm[0,3]:4d}]")
-            print(f"       AFL   [{cm[1,0]:4d} {cm[1,1]:4d} {cm[1,2]:4d} {cm[1,3]:4d}]")
-            print(f"       PSVT  [{cm[2,0]:4d} {cm[2,1]:4d} {cm[2,2]:4d} {cm[2,3]:4d}]")
-            print(f"       NOR   [{cm[3,0]:4d} {cm[3,1]:4d} {cm[3,2]:4d} {cm[3,3]:4d}]")
+            print(f"\nConfusion Matrix:\n{cm}")
     
     print("=" * 80)
 

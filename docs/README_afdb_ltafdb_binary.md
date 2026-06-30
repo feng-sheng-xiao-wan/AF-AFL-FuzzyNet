@@ -109,7 +109,7 @@ python train_af_vs_afl_afdb_ltafdb.py `
 2. **类别不平衡**：AF:AFL 比例约为 24:1，已通过增强的类别权重和低置信度关注机制处理
 3. **预计算特征**：数据集已包含预计算特征（rr_seq、noise_feat、fuzzy_logits），训练速度更快
 4. **标签映射**：AF 映射为 0，AFL 映射为 1
-5. **模糊规则**：自动截取前两个 logits（AF 和 AFL），忽略 PSVT 和 Normal
+5. **模糊规则**：输出二分类 logits（AF 和 AFL），与训练标签一致
 6. **Windows 系统**：建议设置 `--num_workers 0` 以避免多进程问题
 7. **训练策略**：
    - 使用 `--use_class_weights` 处理类别不平衡
@@ -176,4 +176,3 @@ python train_af_vs_afl_afdb_ltafdb.py `
     --lr 1e-3 `
     --num_workers 0
 ```
-

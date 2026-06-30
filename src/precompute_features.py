@@ -242,7 +242,7 @@ def precompute_features_batch(
     print(f"  - use_stft_dbscan: {use_stft_dbscan}")
     print(f"  - multi_lead_method: {multi_lead_method}")
     print(f"  - flutter_method: {flutter_method}")
-    print(f"  - num_classes: {num_classes} ({'Binary (AF vs AFL)' if num_classes == 2 else 'Multi-class (AF/AFL/PSVT/Normal)'})")
+    print(f"  - num_classes: {num_classes} (Binary AF vs AFL)")
     if lead_names:
         print(f"  - lead_names: {lead_names}")
     
@@ -373,9 +373,9 @@ def parse_args():
     parser.add_argument(
         "--num_classes",
         type=int,
-        default=4,
-        choices=[2, 4],
-        help="Number of classes: 2 for binary (AF vs AFL), 4 for multi-class (AF/AFL/PSVT/Normal)",
+        default=2,
+        choices=[2],
+        help="Number of classes for AF/AFL binary features.",
     )
     
     return parser.parse_args()
@@ -399,7 +399,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 
 

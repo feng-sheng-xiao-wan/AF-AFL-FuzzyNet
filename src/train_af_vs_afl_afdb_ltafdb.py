@@ -4,7 +4,7 @@
 专门用于 AFDB 和 LTAFDB 数据集的二分类任务
 
 主要修改：
-1. 二分类：AF=0, AFL=1（移除PSVT和Normal）
+1. 二分类：AF=0, AFL=1（仅保留 AF/AFL）
 2. 使用 AFDB 和 LTAFDB 数据集
 3. 技术路线保持不变：形态+节律+噪声分支+模糊规则
 4. 修改模糊规则输出，只保留AF和AFL的logits
@@ -54,8 +54,7 @@ def combine_afdb_ltafdb_csvs(
     
     # ECGDataset 会自动将 label_raw 映射为 label
     # 对于二分类，我们需要确保映射正确：AF=0, AFL=1
-    # 但 ECGDataset 的映射是：AF=0, AFL=1, PSVT=2, Normal=3
-    # 所以对于二分类，我们只需要确保 label_raw 是 'AF' 或 'AFL' 即可
+    # ECGDataset 的二分类映射是：AF=0, AFL=1
     
     # 保存
     df_combined.to_csv(output_csv, index=False)
@@ -358,4 +357,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

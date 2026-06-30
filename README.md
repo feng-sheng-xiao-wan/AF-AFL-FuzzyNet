@@ -1,6 +1,6 @@
 # Fuzzy-Rule-Guided AF/AFL Recognition from Short ECG Windows
 
-This repository contains the code needed to reproduce the AF/AFL experiments, reviewer-requested post-processing analyses, and publication figures.
+This repository contains the code needed to reproduce the AF/AFL binary experiments, reviewer-requested post-processing analyses, and publication figures.
 
 Raw ECG databases and precomputed feature files are not included. A compact main AF/AFL checkpoint is included for convenience; other checkpoints should be regenerated with the scripts in this repository.
 
@@ -9,9 +9,6 @@ Raw ECG databases and precomputed feature files are not included. A compact main
 ```text
 src/
   Main model, preprocessing, feature extraction, training, and testing scripts.
-
-ablation_Af_AFL/
-  Ablation and baseline-comparison code.
 
 scripts/
   Reviewer-stage post-processing, PR/ROC/probability plots, and diagnostic-table generation.
@@ -28,7 +25,6 @@ docs/
 - `src/noise_aware_ecg_af_afl_simple.py`: main three-branch ECG/RR/quality model with fuzzy-rule-guided fusion.
 - `src/train_af_vs_afl_afdb_ltafdb.py`: AF/AFL binary training entry point.
 - `src/precompute_features.py`: precompute RR, quality, and fuzzy-rule features.
-- `src/process_pretrain_data.py`: PTB-XL slicing and label mapping from `scp_codes`.
 - `checkpoints/af_vs_afl_afdb_ltafdb.pt`: uploaded compact AF/AFL checkpoint.
 - `scripts/run_stage2_revision_experiments.py`: threshold-harmonized metrics, AUROC/AUPRC, bootstrap CI, clean/noisy AFL analysis, fuzzy-logit summary.
 - `scripts/plot_stage2_revision_figures.py`: generates the two reviewer-stage diagnostic figures.

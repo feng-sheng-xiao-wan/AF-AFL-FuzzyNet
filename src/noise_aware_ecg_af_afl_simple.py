@@ -1,35 +1,17 @@
 # noise_aware_ecg_af_afl_simple.py
 """
-ECG arrhythmia training with morphology + rhythm (RR) + noise branches + optimized fuzzy rules (4-class).
+AF/AFL binary ECG training with morphology, RR-rhythm, signal-quality,
+and fuzzy-rule-guided fusion branches.
 
-核心功能：
-- 在 10s 诊断级 / 动态 ECG 窗口上做 AF / AFL / PSVT / Normal 四分类；
-- 使用最简单的 transform：ECG 归一化（去均值、标准化）
-- 三分支模型：
-    * 形态特征：ECG 1D CNN (morphology branch)
-    * 节律特征：RR 间期序列 + GRU 编码 (rhythm branch)
-    * 噪声特征：频带能量比例、谱熵、SNR、STFT+DBSCAN 脉冲比例 (noise branch)
-- 精细化的模糊规则系统（基于临床ECG知识库）：
-    * 多特征组合：RMSSD, CV, pNN50（不规则性）；Flutter band, 心房率（AFL证据）；P波存在性；规律性指数
-    * 临床阈值：基于标准ECG诊断标准（如AF: CV>0.12, pNN50>10%；AFL: 心房率250-350 bpm）
-    * 精细化规则：
-      - AF: 高不规则性 + 无P波 + 无flutter
-      - AFL: 规律性 + flutter证据 + 中等心率（心房率250-350 bpm）
-      - PSVT: 快心率(>150 bpm) + 规律性 + 有P波 + 无flutter
-      - Normal: 正常心率(60-100 bpm) + 规律性 + 有P波 + 无flutter
-    * 使用加权特征组合和sigmoid隶属度函数
-- 深度学习输出与模糊规则输出加权融合后送入四分类头；
-- 样本权重 = 置信度权重 × 类别权重，提升小样本类的贡献。
+Expected CSV columns:
+- path: path to a segment .npz file containing `ecg` and optionally `fs`
+- label_raw: rhythm label, restricted to `AF` or `AFL`
+- feature_path: optional path to precomputed `rr_seq`, `noise_feat`, and
+  binary fuzzy logits
 
-CSV 格式：
-- path        : .npz 文件路径（内含 'ecg'，可选 'fs'）
-- label_raw   : 原始心律标签字符串，如 "AF", "AFL", "PSVT", "Normal", "NSR", "SR"
-                本脚本自动映射为 AF=0, AFL=1, PSVT=2, Normal=3，并过滤其他异常心律
-- 可选 noise_label : 噪声标签（0/1 等，-1 表示未知）
-
-NPZ 格式：
-- ecg : ECG 数组，形状 (T,), (T, C) 或 (C, T)
-- fs  : float, 采样率（默认 250Hz）
+Expected ECG NPZ format:
+- ecg: ECG array shaped `(T,)`, `(T, C)`, or `(C, T)`
+- fs: optional sampling rate, defaulting to 250 Hz
 """
 
 import argparse
@@ -712,31 +694,17 @@ def fuzzy_membership_trapezoidal(x: float, a: float, b: float, c: float, d: floa
 
 class FuzzyRuleSystem:
     """
-    精细化的模糊规则系统：基于临床ECG知识库进行四分类（AF/AFL/PSVT/Normal）
-    
-    基于临床标准：
-    - AF: 不规则心律，无P波，RR间期高度变异（CV>0.12, pNN50>10%）
-    - AFL: 规律心律，flutter波（3-8 Hz），心房率250-350 bpm，RR间期规律
-    - PSVT: 快速规律心律（>150 bpm），突然开始/结束，无flutter
-    - Normal: 规律心律，正常心率（60-100 bpm），有P波
-    
-    特征：
-    - RMSSD, CV, pNN50: 不规则性指标
-    - Flutter ratio, Atrial rate: AFL证据
-    - Heart rate: 心率分类
-    - P wave presence: P波存在性
-    - Regularity index: 规律性指数
+    Binary AF/AFL fuzzy rule system.
+
+    The rules combine RR irregularity evidence for AF and flutter-band,
+    atrial-rate, and rhythm-regularity evidence for AFL.
     """
-    
+
     def __init__(self):
         pass
-    
+
     def infer(self, rr_stats: dict) -> dict:
-        """
-        精细化的模糊规则推理，返回 AF、AFL、PSVT 和 Normal 的隶属度分数
-        
-        使用多特征组合和临床阈值：
-        """
+        """Return normalized AF and AFL membership scores."""
         rmssd = rr_stats["rmssd"]
         rr_cv = rr_stats["rr_cv"]
         pnn50 = rr_stats["pnn50"]
@@ -745,103 +713,47 @@ class FuzzyRuleSystem:
         heart_rate = rr_stats["heart_rate"]
         p_wave_presence = rr_stats["p_wave_presence"]
         regularity_index = rr_stats["regularity_index"]
-        
-        # ========== 特征隶属度计算（基于临床阈值）==========
-        
-        # 1. 不规则性特征（AF的关键指标）
-        # RMSSD > 0.08s 表示高度不规则（临床标准）
+
         mu_irreg_rmssd = float(_sigmoid_np(np.array([(rmssd - 0.08) / 0.02], dtype=np.float32))[0])
-        # CV > 0.12 表示高变异性（AF特征）
         mu_irreg_cv = float(_sigmoid_np(np.array([(rr_cv - 0.12) / 0.03], dtype=np.float32))[0])
-        # pNN50 > 10% 表示高度不规则（AF特征）
         mu_irreg_pnn50 = float(_sigmoid_np(np.array([(pnn50 - 0.10) / 0.05], dtype=np.float32))[0])
-        # 综合不规则性（加权平均）
-        mu_irreg_high = (mu_irreg_rmssd * 0.4 + mu_irreg_cv * 0.4 + mu_irreg_pnn50 * 0.2)
-        mu_irreg_low = 1.0 - mu_irreg_high
-        
-        # 2. 规律性特征
-        mu_regular = regularity_index  # 直接使用规律性指数
-        
-        # 3. Flutter证据（AFL的关键指标）
-        # Flutter band (3-8 Hz) 能量 > 0.08
+        mu_irreg_high = mu_irreg_rmssd * 0.4 + mu_irreg_cv * 0.4 + mu_irreg_pnn50 * 0.2
+
+        mu_regular = regularity_index
         mu_flutter_band = float(_sigmoid_np(np.array([(flutter_ratio - 0.08) / 0.03], dtype=np.float32))[0])
-        # 心房率在250-350 bpm范围内（AFL特征）
+
         mu_atrial_rate_afl = 0.0
         if 250.0 <= atrial_rate <= 350.0:
-            # 在范围内，计算隶属度（峰值在300 bpm）
             if atrial_rate <= 300.0:
                 mu_atrial_rate_afl = (atrial_rate - 250.0) / 50.0
             else:
                 mu_atrial_rate_afl = (350.0 - atrial_rate) / 50.0
         mu_flutter = mu_flutter_band * 0.7 + mu_atrial_rate_afl * 0.3
-        
-        # 4. 心率分类
-        # 快心率：>150 bpm（PSVT特征）
-        mu_hr_fast = float(_sigmoid_np(np.array([(heart_rate - 150.0) / 20.0], dtype=np.float32))[0])
-        # 正常心率：60-100 bpm（Normal特征）
-        mu_hr_normal_low = float(_sigmoid_np(np.array([(60.0 - heart_rate) / 10.0], dtype=np.float32))[0])
-        mu_hr_normal_high = float(_sigmoid_np(np.array([(heart_rate - 100.0) / 10.0], dtype=np.float32))[0])
-        mu_hr_normal = (1.0 - mu_hr_normal_low) * (1.0 - mu_hr_normal_high)
-        # 中等心率：100-150 bpm（可能是AFL）
+
         mu_hr_medium = 0.0
         if 100.0 < heart_rate < 150.0:
             if heart_rate <= 125.0:
                 mu_hr_medium = (heart_rate - 100.0) / 25.0
             else:
                 mu_hr_medium = (150.0 - heart_rate) / 25.0
-        
-        # 5. P波存在性（Normal和PSVT有P波，AF通常无P波）
-        mu_p_wave_present = p_wave_presence
+
         mu_p_wave_absent = 1.0 - p_wave_presence
-        
-        # ========== 精细化规则推理 ==========
-        
-        # R1: AF规则（高不规则性 + 无P波 + 无flutter）
-        # 临床标准：不规则心律，无P波，RR高度变异
+
         s_af = mu_irreg_high * (0.6 + 0.4 * mu_p_wave_absent) * (1.0 - mu_flutter * 0.5)
-        
-        # R2: AFL规则（规律性 + flutter证据 + 中等心率）
-        # 临床标准：规律心律，flutter波，心房率250-350 bpm
-        # 原始规则对AFL要求较苛刻（必须同时满足高规律性 + 强flutter + 中等心率），
-        # 在真实数据中可能导致 AFL 隶属度偏低，从而使得 AFL recall 过低。
-        # 为了提高 AFL 的召回率，这里放宽并增强 AFL 规则：
-        #  - 更强调 flutter 证据（mu_flutter），适当结合规律性和中等心率
-        #  - 对“不过分不规则”的节律（1 - mu_irreg_high）给予一定加成，避免被 AF 规则完全压制
-        s_afl_base = (
-            0.6 * mu_flutter      # flutter 证据为主
-            + 0.2 * mu_hr_medium  # 中等心率为辅
-            + 0.2 * mu_regular    # 规律性辅助
-        )
-        # 对于不那么高度不规则的节律，适当增强 AFL 评分（防止被 AF 完全抢占）
-        afl_regular_boost = 0.5 + 0.5 * (1.0 - mu_irreg_high)  # mu_irreg_high 越低，boost 越高
+        s_afl_base = 0.6 * mu_flutter + 0.2 * mu_hr_medium + 0.2 * mu_regular
+        afl_regular_boost = 0.5 + 0.5 * (1.0 - mu_irreg_high)
         s_afl = s_afl_base * afl_regular_boost
-        
-        # R3: PSVT规则（快心率 + 规律性 + 有P波 + 无flutter）
-        # 临床标准：快速规律心律，有P波，无flutter
-        s_psvt = mu_hr_fast * mu_regular * (0.7 + 0.3 * mu_p_wave_present) * (1.0 - mu_flutter * 0.5)
-        
-        # R4: Normal规则（正常心率 + 规律性 + 有P波 + 无flutter）
-        # 临床标准：正常规律心律，有P波，无flutter
-        s_normal = mu_hr_normal * mu_regular * (0.7 + 0.3 * mu_p_wave_present) * (1.0 - mu_flutter * 0.5)
-        
-        # 归一化到 [0, 1]
-        scores = np.array([s_af, s_afl, s_psvt, s_normal], dtype=np.float32)
+
+        scores = np.array([s_af, s_afl], dtype=np.float32)
         mu = scores / (scores.sum() + 1e-6)
-        
-        # 计算规则置信度（最大分数与次大分数的差异）
-        sorted_scores = np.sort(mu)[::-1]
-        rule_conf = float(sorted_scores[0] - sorted_scores[1]) if len(sorted_scores) > 1 else 0.0
-        
+        rule_conf = float(abs(mu[0] - mu[1]))
+
         return {
             "af_score": float(mu[0]),
             "afl_score": float(mu[1]),
-            "psvt_score": float(mu[2]),
-            "normal_score": float(mu[3]),
             "raw_af": float(s_af),
             "raw_afl": float(s_afl),
-            "raw_psvt": float(s_psvt),
-            "raw_normal": float(s_normal),
-            "rule_conf": rule_conf,  # 规则置信度
+            "rule_conf": rule_conf,
         }
 
 
@@ -853,26 +765,19 @@ def apply_fuzzy_rules(
     lead_names: Optional[List[str]] = None,
 ) -> torch.Tensor:
     """
-    应用优化的模糊规则系统，返回模糊分类分数（四分类）
-    - rr_seq: 归一化后的 RR 序列
-    - ecg: ECG 信号（1D或2D多导联，用于计算 flutter band）
-    - fs: 采样率
-    - flutter_method: "fixed_lead" 或 "attention"（多导联flutter计算方式）
-    - lead_names: 导联名称列表（用于识别II/V1导联）
-    返回形状为 (4,) 的 tensor，[AF_logit, AFL_logit, PSVT_logit, Normal_logit]
+    Apply the binary AF/AFL fuzzy rule system and return two logits.
+
+    Returns a tensor shaped `(2,)`: `[AF_logit, AFL_logit]`.
     """
     fuzzy_system = FuzzyRuleSystem()
     rr_stats = extract_rr_statistics(rr_seq, ecg, fs, flutter_method=flutter_method, lead_names=lead_names)
     fuzzy_result = fuzzy_system.infer(rr_stats)
     
-    # 转换为 logits（使用 log 变换，使得可以用于 softmax）
-    # 将 [0,1] 的分数转换为 logits
-    af_logit = np.log(fuzzy_result["af_score"] + 1e-8) * 2.0  # 放大以匹配模型 logits 尺度
+    # Convert normalized rule scores into logits for neural/rule fusion.
+    af_logit = np.log(fuzzy_result["af_score"] + 1e-8) * 2.0
     afl_logit = np.log(fuzzy_result["afl_score"] + 1e-8) * 2.0
-    psvt_logit = np.log(fuzzy_result["psvt_score"] + 1e-8) * 2.0
-    normal_logit = np.log(fuzzy_result["normal_score"] + 1e-8) * 2.0
-    
-    return torch.tensor([af_logit, afl_logit, psvt_logit, normal_logit], dtype=torch.float32)
+
+    return torch.tensor([af_logit, afl_logit], dtype=torch.float32)
 
 
 # ---------------------------------------------------------------------
@@ -883,7 +788,7 @@ class ECGDataset(Dataset):
     """
     Dataset:
         - 从 CSV 读 path, label_raw, noise_label
-        - 自动过滤非 AF/AFL/PSVT/Normal（只保留这四类）
+        - 自动过滤非 AF/AFL 标签
         - 从 npz 读 ECG (+ fs)，截取/填充到 max_len
         - 最简单的 transform：归一化（去均值、标准化）
         - 优先从预计算文件读取特征（rr_seq, noise_feat, fuzzy_logits），否则在线计算
@@ -891,7 +796,7 @@ class ECGDataset(Dataset):
             ecg       : (C, T) - 已归一化
             noise_feat: (D,) - 噪声特征
             rr_seq    : (max_rr_intervals,)
-            label     : 0..3 (AF=0, AFL=1, PSVT=2, Normal=3)
+            label     : 0..1 (AF=0, AFL=1)
             noise_label: int (>=0 有监督；-1 未知)
     """
 
@@ -924,34 +829,34 @@ class ECGDataset(Dataset):
         if "path" not in self.df.columns:
             raise ValueError("CSV must contain 'path' column")
 
-        # 映射 AF/AFL/PSVT/Normal 四类
+        # Map binary AF/AFL labels only.
         if "label" not in self.df.columns:
             if "label_raw" in self.df.columns:
                 raw_to_label = {
                     "AF": 0,
                     "AFL": 1,
-                    "PSVT": 2,
-                    "Normal": 3,
-                    "NOR": 3,
-                    "NORM": 3,
-                    "NSR": 3,
-                    "SR": 3,
-                    "Other": 3,
-                    "OTHER": 3,
                 }
                 before = len(self.df)
                 self.df = self.df[self.df["label_raw"].isin(raw_to_label.keys())].copy()
                 after = len(self.df)
                 if after < before:
-                    print(f"[ECGDataset] Filtered out {before - after} samples with non-target rhythms (kept AF/AFL/PSVT/Normal).")
+                    print(f"[ECGDataset] Filtered out {before - after} samples with non-target rhythms (kept AF/AFL).")
                 if len(self.df) == 0:
                     raise ValueError(
-                        "No samples left after filtering for AF/AFL/PSVT/Normal. "
+                        "No samples left after filtering for AF/AFL. "
                         "Please check 'label_raw' values in CSV."
                     )
                 self.df["label"] = self.df["label_raw"].map(raw_to_label)
             else:
                 raise ValueError("CSV must contain either 'label' or 'label_raw' column")
+        else:
+            before = len(self.df)
+            self.df = self.df[self.df["label"].isin([0, 1])].copy()
+            after = len(self.df)
+            if after < before:
+                print(f"[ECGDataset] Filtered out {before - after} non-binary labels (kept AF/AFL labels 0/1).")
+            if len(self.df) == 0:
+                raise ValueError("No samples left after filtering for binary AF/AFL labels 0/1.")
 
         self.max_len = max_len
         self.num_leads = num_leads
@@ -1274,7 +1179,7 @@ class ECGDataset(Dataset):
             "ecg": ecg_t,
             "noise_feat": noise_t,
             "rr_seq": rr_t,
-            "fuzzy_logits": fuzzy_logits,  # 模糊规则 logits (4,)
+            "fuzzy_logits": fuzzy_logits,  # 模糊规则 logits (2,)
             "label": y,
             "noise_label": y_noise,
             "record_name": record_name,
@@ -1387,7 +1292,7 @@ class ECGNet(nn.Module):
 
         fused_dim = d_model + rhythm_emb_dim + noise_emb_dim
         self.fused_dropout = nn.Dropout(p=0.3)
-        # 主四分类头：AF/AFL/PSVT/Normal
+        # Main AF/AFL binary head.
         self.arr_head = nn.Linear(fused_dim, num_arrhythmia_classes)
         # AF/AFL 二分类辅助头（0=AF, 1=AFL）
         self.af_bin_head = nn.Linear(fused_dim, 2)
@@ -1538,13 +1443,8 @@ class ECGNet(nn.Module):
                 afl_boost = torch.clamp((logit_diff - logit_diff_threshold) * logit_diff_coef, min=0.0, max=logit_diff_max)
                 logits_arr_afl = logits_arr_afl + moderate_diff_mask * afl_boost
                 
-                # 重新组合
-                if logits_arr.size(1) == 2:
-                    logits_arr = torch.cat([logits_arr_af, logits_arr_afl], dim=1)
-                else:
-                    # 对于多分类，只调整AFL，其他类别使用原始alpha
-                    logits_arr_other = (1.0 - alpha) * logits_arr_before_fusion[:, 2:] + alpha * fuzzy_logits[:, 2:]
-                    logits_arr = torch.cat([logits_arr_af, logits_arr_afl, logits_arr_other], dim=1)
+                # Binary AF/AFL recombination.
+                logits_arr = torch.cat([logits_arr_af, logits_arr_afl], dim=1)
             else:
                 # 标准融合（如果类别数不匹配或不是二分类）
                 logits_arr = (1.0 - alpha) * logits_arr + alpha * fuzzy_logits
@@ -1609,9 +1509,10 @@ class TrainConfig:
     weight_decay: float = 1e-4
     epochs: int = 40
     device: str = "cpu"
-    out_ckpt: str = "ecg_4class_fuzzy.pt"
+    out_ckpt: str = "af_vs_afl_afdb_ltafdb.pt"
     weight_conf_gamma: float = 1.0
     min_weight: float = 0.1
+    max_weight: float = 5.0
     # 低置信度样本处理策略
     # 如果 use_low_conf_focus=True: 给低置信度样本更高权重（不丢弃）
     # 如果 use_low_conf_focus=False: 丢弃低置信度样本（原始策略）
@@ -1663,6 +1564,7 @@ class TrainConfig:
     hard_mining_af_fp_mult: float = 2.0   # AF->AFL (FP) 权重倍率
     hard_mining_low_conf_mult: float = 1.5  # 低置信度正确样本倍率（可选）
     hard_mining_conf_threshold: float = 0.65  # 低置信度阈值（max prob < th）
+    allow_test_threshold_fallback: bool = False  # 禁止在测试集上重新选择阈值，避免信息泄漏
     split_seed: int = 42  # 患者级 8:1:1 划分随机种子
 
 
@@ -2183,6 +2085,7 @@ def _compute_sample_weight(
     logits_arr: torch.Tensor,
     gamma: float,
     min_weight: float,
+    max_weight: float = 5.0,
     boundary_alpha: float = 0.0,
     use_low_conf_focus: bool = False,
     low_conf_alpha: float = 1.0,
@@ -2192,6 +2095,7 @@ def _compute_sample_weight(
     样本权重：基于模型置信度和边界感知
     - gamma: 置信度权重指数
     - min_weight: 最小权重
+    - max_weight: 最大权重
     - boundary_alpha: 边界感知权重系数（0表示不使用边界感知）
     - use_low_conf_focus: 是否关注低置信度样本（而非丢弃）
     - low_conf_alpha: 低置信度样本权重增强系数
@@ -2217,7 +2121,7 @@ def _compute_sample_weight(
         # 边界样本权重增强：weight = weight * (1 + alpha * boundary_score)
         weight = weight * (1.0 + boundary_alpha * boundary_score)
     
-    return torch.clamp(weight, min=min_weight, max=5.0)  # 允许权重超过1.0以支持低置信度和边界样本
+    return torch.clamp(weight, min=min_weight, max=max_weight)  # 允许权重超过1.0以支持低置信度和边界样本
 
 
 def train_one_epoch(
@@ -2228,6 +2132,7 @@ def train_one_epoch(
     device: str,
     gamma: float,
     min_weight: float,
+    max_weight: float,
     conf_discard_th: float,
     lambda_af_bin: float,
     epoch: int,
@@ -2285,7 +2190,7 @@ def train_one_epoch(
         else:
             lambda_af_bin_effective = lambda_af_bin
 
-        # 基于主四分类头计算样本置信度
+        # 基于主分类头计算样本置信度
         conf = torch.softmax(logits_arr, dim=-1).amax(dim=-1)
         
         # 根据策略决定是否使用keep_mask（仅用于向后兼容的丢弃策略）
@@ -2317,6 +2222,7 @@ def train_one_epoch(
             logits_arr, 
             gamma, 
             min_weight, 
+            max_weight=max_weight,
             boundary_alpha=effective_alpha,
             use_low_conf_focus=use_low_conf_focus,
             low_conf_alpha=low_conf_alpha,
@@ -2581,7 +2487,7 @@ def evaluate(
             chosen_threshold, tuned_info = _search_best_afl_threshold(
                 y_true_np,
                 p_afl_np,
-                beta=2.0,
+                beta=1.0,
                 steps=afl_threshold_search_steps,
                 t_min=afl_threshold_search_min,
                 t_max=afl_threshold_search_max,
@@ -2624,12 +2530,6 @@ def evaluate(
         print("            Pred: AF  AFL")
         print(f"  True: AF  [{cm[0,0]:4d} {cm[0,1]:4d}]")
         print(f"       AFL  [{cm[1,0]:4d} {cm[1,1]:4d}]")
-    elif num_classes == 4:
-        print("            Pred:   AF  AFL PSVT  NOR")
-        print(f"  True: AF   [{cm[0,0]:4d} {cm[0,1]:4d} {cm[0,2]:4d} {cm[0,3]:4d}]")
-        print(f"       AFL   [{cm[1,0]:4d} {cm[1,1]:4d} {cm[1,2]:4d} {cm[1,3]:4d}]")
-        print(f"       PSVT  [{cm[2,0]:4d} {cm[2,1]:4d} {cm[2,2]:4d} {cm[2,3]:4d}]")
-        print(f"       NOR   [{cm[3,0]:4d} {cm[3,1]:4d} {cm[3,2]:4d} {cm[3,3]:4d}]")
     else:
         print(cm)
     return metrics
@@ -3024,7 +2924,7 @@ def get_device(device_str: str = "auto"):
 
 def run_training(cfg: TrainConfig):
     print("=" * 80)
-    print("ECG Arrhythmia Training (Morphology + Rhythm + Noise, 4-Class Classification)")
+    print("AF/AFL Binary ECG Training (Morphology + Rhythm + Noise + Fuzzy Fusion)")
     print("=" * 80)
 
     device = get_device(cfg.device)
@@ -3057,14 +2957,6 @@ def run_training(cfg: TrainConfig):
                 raw_to_label = {
                     "AF": 0,
                     "AFL": 1,
-                    "PSVT": 2,
-                    "Normal": 3,
-                    "NOR": 3,
-                    "NORM": 3,
-                    "NSR": 3,
-                    "SR": 3,
-                    "Other": 3,
-                    "OTHER": 3,
                 }
                 train_df["label"] = train_df["label_raw"].map(raw_to_label)
                 # 只保留AF和AFL（二分类）
@@ -3370,7 +3262,7 @@ def run_training(cfg: TrainConfig):
     print(f"\n[5/7] Training config:")
     print(f"  - Epochs: {cfg.epochs}, Batch size: {cfg.batch_size}")
     print(f"  - Max len: {cfg.max_len}, RR len: {cfg.max_rr_intervals}")
-    print(f"  - Reweight: gamma={cfg.weight_conf_gamma}, min_w={cfg.min_weight}")
+    print(f"  - Reweight: gamma={cfg.weight_conf_gamma}, clip=[{cfg.min_weight}, {cfg.max_weight}]")
     print(f"  - Use class weights: {cfg.use_class_weights}")
     print(f"  - Fuzzy rule weight (init): {cfg.fuzzy_weight_init} (learnable gating)")
     print(f"  - Boundary aware: {cfg.use_boundary_aware} (alpha={cfg.boundary_alpha}, threshold={cfg.boundary_threshold}, lambda={cfg.lambda_boundary})")
@@ -3404,6 +3296,7 @@ def run_training(cfg: TrainConfig):
             device,
             cfg.weight_conf_gamma,
             cfg.min_weight,
+            cfg.max_weight,
             cfg.conf_discard_th,
             cfg.lambda_af_bin,
             epoch,
@@ -3676,7 +3569,11 @@ def run_training(cfg: TrainConfig):
             f"F1={test_metrics['macro_f1']:.4f}, P={test_metrics['macro_precision']:.4f}, R={test_metrics['macro_recall']:.4f}"
         )
         # 兜底：若保存的阈值在 Test 上导致 AFL 几乎全灭（召回<2%），在 Test 上尝试较低阈值并选用 macro F1 最高的
-        if cfg.num_arrhythmia_classes == 2 and test_metrics.get("confusion_matrix") is not None:
+        if (
+            cfg.num_arrhythmia_classes == 2
+            and bool(getattr(cfg, "allow_test_threshold_fallback", False))
+            and test_metrics.get("confusion_matrix") is not None
+        ):
             cm = test_metrics["confusion_matrix"]
             afl_total = int(cm[1, 0]) + int(cm[1, 1])
             afl_recall = (int(cm[1, 1]) / afl_total) if afl_total > 0 else 0.0
@@ -3731,14 +3628,14 @@ def run_training(cfg: TrainConfig):
 
 def parse_args() -> TrainConfig:
     parser = argparse.ArgumentParser(
-        description="ECG arrhythmia training with morphology+rhythm+noise branches + fuzzy rules (4-class: AF/AFL/PSVT/Normal)",
+        description="AF/AFL binary ECG training with morphology+rhythm+noise branches + fuzzy rules",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument("--data_csv", type=str, default="", help="Full data CSV (will be split 8:1:1; AF/AFL/PSVT/Normal)")
+    parser.add_argument("--data_csv", type=str, default="", help="Full AF/AFL data CSV (will be split 8:1:1)")
     parser.add_argument("--train_csv", type=str, default="", help="Train CSV (if not using data_csv)")
     parser.add_argument("--val_csv", type=str, default="", help="Val CSV (if not using data_csv)")
     parser.add_argument("--num_leads", type=int, default=1)
-    parser.add_argument("--num_arrhythmia_classes", type=int, default=4)
+    parser.add_argument("--num_arrhythmia_classes", type=int, default=2)
     parser.add_argument("--max_len", type=int, default=2500)
     parser.add_argument("--max_rr_intervals", type=int, default=32)
     parser.add_argument("--use_stft_dbscan", action="store_true", default=False, help="Enable STFT+DBSCAN for impulsive noise ratio")
@@ -3748,9 +3645,10 @@ def parse_args() -> TrainConfig:
     parser.add_argument("--weight_decay", type=float, default=1e-4)
     parser.add_argument("--epochs", type=int, default=40)
     parser.add_argument("--device", type=str, default="auto")
-    parser.add_argument("--out_ckpt", type=str, default="ecg_4class_fuzzy.pt")
+    parser.add_argument("--out_ckpt", type=str, default="af_vs_afl_afdb_ltafdb.pt")
     parser.add_argument("--weight_conf_gamma", type=float, default=1.0)
     parser.add_argument("--min_weight", type=float, default=0.1)
+    parser.add_argument("--max_weight", type=float, default=5.0)
     parser.add_argument("--validate_every_batch", action="store_true", default=True)
     parser.add_argument("--no_validate_every_batch", dest="validate_every_batch", action="store_false")
     parser.add_argument("--use_class_weights", action="store_true", default=True)
@@ -3932,6 +3830,7 @@ def parse_args() -> TrainConfig:
         out_ckpt=args.out_ckpt,
         weight_conf_gamma=args.weight_conf_gamma,
         min_weight=args.min_weight,
+        max_weight=args.max_weight,
         conf_discard_th=args.conf_discard_th,
         lambda_af_bin=args.lambda_af_bin,
         validate_every_batch=args.validate_every_batch,
@@ -3991,4 +3890,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

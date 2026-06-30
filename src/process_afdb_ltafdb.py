@@ -312,17 +312,16 @@ def process_afdb_record(
         nearest_ann_sample = ann_samples[nearest_ann_idx]
         nearest_symbol = ann_symbols[nearest_ann_idx]
         
-        # 映射标签
+        # Map only AF/AFL labels for the binary task.
         label_map = {
-            'N': 'Normal',
-            'NSR': 'Normal',
             'AFIB': 'AF',
+            'AF': 'AF',
             'AFL': 'AFL',
-            'SVTA': 'PSVT',
-            'J': 'Normal',  # 交界性心律归为Normal
         }
         
-        label_raw = label_map.get(nearest_symbol, 'Normal')
+        label_raw = label_map.get(nearest_symbol)
+        if label_raw is None:
+            continue
         
         # 如果窗口内标注变化频繁，可能需要更复杂的策略
         # 这里简化处理：使用中心点标注
@@ -533,15 +532,16 @@ def process_ltafdb_record(
         else:
             noise_label = 0  # 清洁
         
-        # 动态数据的标签通常需要从标注文件获取
-        # 这里简化处理，需要根据实际LTAFDB格式调整
-        label_raw = 'Normal'  # 默认，需要根据标注更新
+        # 动态数据的标签需要从标注文件获取；未知标签不写入二分类数据集。
+        label_raw = None
         
         # 如果有标注信息，使用标注
         if ann_info:
             # 根据窗口位置查找标注
             # 这里需要根据实际标注格式实现
             pass
+        if label_raw not in ('AF', 'AFL'):
+            continue
         
         # 保存片段
         seg_name = f"{record_name}_seg{seg_idx:04d}"
@@ -718,4 +718,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
