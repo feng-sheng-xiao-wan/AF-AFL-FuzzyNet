@@ -23,6 +23,9 @@ review_audit_optional/
 *.ckpt
 *.log
 
+!checkpoints/
+!checkpoints/*.pt
+
 .ipynb_checkpoints/
 .DS_Store
 Thumbs.db

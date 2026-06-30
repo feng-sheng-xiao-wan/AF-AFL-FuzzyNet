@@ -316,7 +316,6 @@ python train_af_vs_afl_afdb_ltafdb.py \
 ### 3. 测试与汇报
 
 - 训练结束后若 **Test 上 AFL 召回仍 &lt; 2%**，脚本会自动做**测试阈值兜底**：在 Test 上尝试 0.05/0.1/0.15/0.2，取 macro F1 最高的阈值并打印，便于看到「可用的」Test AFL 表现。
-- 严谨评估请用 **`retest_afl_thresholds.py`** 对同一 checkpoint 扫多阈值（如 0.05～0.5），看 AFL-R / AFL-F1 曲线，而不是只报单一阈值下的 Test 结果。
 
 ### 4. 数据与分布
 

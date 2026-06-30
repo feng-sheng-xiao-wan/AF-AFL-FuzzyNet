@@ -2,7 +2,7 @@
 
 This repository contains the code needed to reproduce the AF/AFL experiments, reviewer-requested post-processing analyses, and publication figures.
 
-Raw ECG databases, precomputed feature files, and trained checkpoints are not included. Please download the source ECG datasets from their official providers and regenerate features/checkpoints with the scripts in this repository.
+Raw ECG databases and precomputed feature files are not included. A compact main AF/AFL checkpoint is included for convenience; other checkpoints should be regenerated with the scripts in this repository.
 
 ## Repository Structure
 
@@ -16,6 +16,9 @@ ablation_Af_AFL/
 scripts/
   Reviewer-stage post-processing, PR/ROC/probability plots, and diagnostic-table generation.
 
+checkpoints/
+  Compact main AF/AFL checkpoint for inference/testing.
+
 docs/
   Original project notes and experiment instructions.
 ```
@@ -26,6 +29,7 @@ docs/
 - `src/train_af_vs_afl_afdb_ltafdb.py`: AF/AFL binary training entry point.
 - `src/precompute_features.py`: precompute RR, quality, and fuzzy-rule features.
 - `src/process_pretrain_data.py`: PTB-XL slicing and label mapping from `scp_codes`.
+- `checkpoints/af_vs_afl_afdb_ltafdb.pt`: uploaded compact AF/AFL checkpoint.
 - `scripts/run_stage2_revision_experiments.py`: threshold-harmonized metrics, AUROC/AUPRC, bootstrap CI, clean/noisy AFL analysis, fuzzy-logit summary.
 - `scripts/plot_stage2_revision_figures.py`: generates the two reviewer-stage diagnostic figures.
 
@@ -73,7 +77,7 @@ The following files are intentionally excluded:
 
 - raw ECG waveforms
 - `.npz` precomputed features
-- `.pt`, `.pth`, `.pkl` checkpoints
+- additional `.pt`, `.pth`, `.pkl` checkpoints beyond the compact uploaded checkpoint
 - generated result tables and figures
 - local virtual environments
 - local paper drafts and private reviewer files
